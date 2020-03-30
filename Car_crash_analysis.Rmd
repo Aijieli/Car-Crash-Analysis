@@ -1,0 +1,528 @@
+---
+title: "ml gp"
+output: html_document
+---
+
+```{r}
+library(plyr)
+library(dplyr)
+library(ggplot2)
+library(MASS)
+library(caret)
+library(glmnet)
+library(rpart)
+```
+
+```{r}
+# load dataset
+data <- read.csv("dataset.csv")
+```
+
+# EDA
+
+```{r}
+# structure
+dim(data)
+# as we can observe, it is a dataset with 14 dimensions and 23137 observations
+```
+
+```{r}
+# missing value
+sum(is.na(data))
+# as we can observe, there is no missing value
+```
+
+```{r}
+# head
+head(data)
+# as we can observe, the dependent variable Crash_Score is a numeric variable, and most of the independent variables are categorical variables
+```
+
+```{r}
+colnames(data)
+# the dependent variable is the "Crash_Score", which measures the extent of the crash using factors such as number of injuries and fatalities, the number of vehicles involved, and other factors
+# the independent variables could be categorized into
+# time variables: "Year", "Month", "Time_of_Day"
+# road variables: "Rd_Feature", "Rd_Character", "Rd_Class", "Rd_Configuration", "Rd_Surface", "Rd_Conditions"
+# other variables: "Light", "Weather", "Work_Area", "Traffic_Control"
+```
+
+# dependent variable
+
+```{r}
+qplot(data$Crash_Score, geom="histogram", main="Crash_Score Histogram") 
+qplot(log(data$Crash_Score), geom="histogram", main="Log Crash_Score Histogram")
+summary(data$Crash_Score)
+# as we can observe, the distribution of the Crash_Score is right skewed, with a median of 5.660, and a max of 53.070
+# which indicate that most car crashes are slight car crashes and a small proportion are severe car crashes
+```
+
+# independent variable
+
+```{r}
+# relevel
+vars <- colnames(data)[-(1:4)]
+for (i in vars){
+  table <- as.data.frame(table(data[,i]))
+  # table counts the number of observations for each level of the categorical variable
+  max <- which.max(table[,2])
+  level.name <- as.character(table[max,1])
+  data[,i] <- relevel(data[,i], ref=level.name)
+}
+# we relevel all the categorical variables, assign the base level to the level with the most observations
+summary(data) 
+# here is a summary of all the variables
+```
+
+```{r}
+# barplot for count
+vars <- colnames(data)[-1]
+for (i in vars) {
+  print(
+    qplot(as.factor(data[,i]), geom="bar", main = paste(i, "Barplot")) + 
+    theme(axis.text.x=element_text(angle=90)) +
+    scale_x_discrete(name=i, limits=unique(data[, i]))
+    ) 
+}
+# as we can observe,
+# there are more car crashes during time 2(4am to 8am), 3(8am to 12pm), 5(4pm to 8pm), which is during rush hour
+# there are more car crashes with no traffic control
+```
+
+```{r}
+# line plot for mean and median
+vars <- colnames(data)[-1]
+for (i in vars) {
+  x <- data %>% group_by_(i)%>%
+    summarise(
+    mean=round(mean(log(Crash_Score)),2),   
+    median=round(median(log(Crash_Score)),2)
+    )
+  print(x)
+  x <- as.data.frame(x)
+  print(
+    qplot(x[, 1], x[, 3], data=x, geom=c("point", "line")) +
+    theme(axis.text.x=element_text(angle = 90)) +
+    scale_x_discrete(name=i, limits=x[, 1]) + 
+    scale_y_continuous(name="Crash_Score", limits=c(1.5, 2))
+    )
+}
+# as we can observe,
+# there is no significant change over years (from 2014-2019), nor significant change over the year (from Jan. to Dec.), in other words, no seasonality for car crashes
+# the crash score is affected by the time of the day, the median score is higher durig the daytime (8am to 8pm), the median score is significant lower for time 1 (midnight to 4am), and relatively lower for time 2 (4am to 8am) and time 6 (8pm to midnight)
+# for the raod feature, intersection has significantly higher median score
+# for the road character, straight level has significantly higher median score
+# for the road class, state hwy has the highest score, followed by us hwy and other hwy
+# surprisingly, for the road configuration, two way protected median, two way unprotected median has higher median score than two way no median
+# for the road surface, concrete has significantly lower median score
+# for the road condition, ice snow slush has a relatively higher median score, dry and wet have similar median score, and other has the lowest median score
+# surprisingly, for light, daylight has the highest median score, followed by dusk and down, and then dark light and dark not light
+# for the weather, rain and snow has a relatively higher median score, other has the lowest median score
+# surprisingly, for the road configuration, signal and stop sign have the highest median socre none has the lowest median score
+# work area has a higher median score than non work area
+# the boxplot and violin plot are not as intuitive as the line plot for the median
+```
+
+```{r}
+# boxplots for categorical variables
+vars <- colnames(data)[-(1:4)]
+for (i in vars) {
+  print(
+    qplot(as.factor(data[,i]), data$Crash_Score, geom="boxplot", main = paste(i, "Boxplot")) +
+    theme(axis.text.x = element_text(angle = 90)) +
+    scale_x_discrete(name = i, limits = unique(data[, i])) +
+    scale_y_continuous(name="Crash_Score", limits=c(0, 60))
+    )
+}
+```
+
+```{r}
+# the violin plot for different variables
+vars <- colnames(data)[-(1:4)]
+for (i in vars) {
+  print(
+    qplot(as.factor(data[,i]), data$Crash_Score, geom="violin", main = paste(i, "Violin plot")) +
+    theme(axis.text.x = element_text(angle = 90)) +
+    scale_x_discrete(name = i, limits = unique(data[, i])) +
+    scale_y_continuous(name="Crash_Score", limits=c(0, 60))
+    )
+}
+```
+
+# model development
+
+```{r}
+benchmarking <- function(formula, family, data){
+  # 10 fold cross validation
+  set.seed(123)
+  data <- data[sample(nrow(data)),]
+  folds <- cut(seq(1,nrow(data)),breaks=10,labels=FALSE)
+  # create AIC, RMSE, R2, Adj_R2 list
+  AIC_list <- c()
+  RMSE_list <- c()
+  R2_list <- c()
+  OOS_R2_list <- c()
+  for(i in 1:10){
+    # train test split
+    testIndexes <- which(folds==i,arr.ind=TRUE)
+    testData <- data[testIndexes, ]
+    trainData <- data[-testIndexes, ]
+    # model
+    glm <- glm(formula, family, data=trainData)
+    # model summary
+    summary <- summary(glm)
+    # model prediction
+    predict <- predict(glm,newdata=testData,type="response")
+    # AIC
+    AIC <- summary$aic
+    # RMSE
+    RMSE <- sqrt(sum((testData$Crash_Score-predict)^2)/nrow(testData))
+    # R2
+    R2 <- 1 - (summary$deviance/summary$null.deviance)
+    # OOS R2
+    OOS_R2 <- 1 - sum((testData$Crash_Score-predict)^2) /sum((testData$Crash_Score-mean(testData$Crash_Score))^2)
+    # append to RMSE list
+    AIC_list <- append(AIC_list, AIC)
+    # append to RMSE list
+    RMSE_list <- append(RMSE_list, RMSE)
+    # append to R2 list
+    R2_list <- append(R2_list, R2)
+    # append to OOS R2 list
+    OOS_R2_list <- append(OOS_R2_list, OOS_R2)
+  }
+  # mean AIC
+  print("AIC")
+  print(round(mean(AIC_list), 5))
+  # mean RMSE
+  print("RMSE")
+  print(round(mean(RMSE_list), 5))
+  # mean R2
+  print("R2")
+  print(round(mean(R2_list), 5))
+  # mean Adj R2
+  print("OOS_R2")
+  print(round(mean(OOS_R2_list), 5))
+}
+```
+
+```{r}
+benchmarking(Crash_Score ~ ., gaussian(), data)
+```
+
+```{r}
+benchmarking(Crash_Score ~ ., Gamma(), data)
+```
+
+```{r}
+benchmarking(Crash_Score ~ ., gaussian(link="log"), data)
+```
+
+```{r}
+benchmarking(Crash_Score ~ ., Gamma(link="log"), data)
+```
+
+```{r}
+# conclusion 1
+# the gaussian distribution has the highest OOS R2 and the lowest RMSE
+# the gamma distribution has the highest R2 and the lowest AIC
+# conclusion 2
+# there are too many variables and too many varaible levels
+# as a result, we will do a feature transformation
+```
+
+# feature transfromation
+
+```{r}
+data2 <- data
+```
+
+```{r}
+# feature transfromation
+re_level <- function(var, re_levels){
+  # level
+  data2[,var] <- as.factor(data2[,var])
+  var.levels <- levels(data2[,var])
+  data2[,var] <-  mapvalues(data2[,var],var.levels, re_levels)
+  # relevel
+  table <- as.data.frame(table(data2[,var]))
+  max <- which.max(table[,2])
+  level.name <- as.character(table[max,1])
+  data2[,var] <- relevel(data2[,var], ref=level.name)
+  return(data2)
+}
+```
+
+```{r}
+# time of day
+data2 <- re_level("Time_of_Day", c("OVERNIGHT","LATE-EARLY","DAYTIME","DAYTIME","DAYTIME", "LATE-EARLY"))
+# we relevel the time of day into day time (8am - 8pm), overnight (midnight to 4am), and late early (4am to 8am, 8pm to midnight)
+table(data2[, "Time_of_Day"])
+```
+
+```{r}
+# road feature
+# level
+data2 <- re_level("Rd_Feature" , c("OTHER","OTHER","INTERSECTION","OTHER","OTHER"))
+# we relevel the road feature into interaction and other
+table(data2[, "Rd_Feature"])
+```
+
+```{r}
+# road character
+# level
+data2 <- re_level("Rd_Character", c("STRAIGHT","CURVE","CURVE","CURVE","CURVE","STRAIGHT","STRAIGHT"))
+# we relevel the road character into straight and curve, note that other is classfied as curve
+table(data2[, "Rd_Character"])
+```
+
+```{r}
+# road surface
+# level
+data2 <- re_level("Rd_Surface", c("ASPHALT","ASPHALT","OTHER","OTHER","OTHER"))
+# we relevel the road surface into asohalt and other
+table(data2[, "Rd_Surface"])
+```
+
+```{r}
+# weather
+# level
+data2 <- re_level("Weather", c("CLEAR-CLOUDY","CLEAR-CLOUDY","OTHER","RAIN-SNOW ","RAIN-SNOW "))
+# we relevel the weather into clear couldy, rain snow, and other
+table(data2[, "Weather"])
+```
+
+```{r}
+# traffic control
+# level
+data2 <- re_level("Traffic_Control", c("OTHER","OTHER","SIGNAL-STOP","SIGNAL-STOP","OTHER"))
+# we relevel the traffic control into signal-stop and other
+table(data2[, "Traffic_Control"])
+```
+
+```{r}
+summary(data2)
+write.csv(data2, "dataset2.csv")
+```
+
+```{r}
+benchmarking(Crash_Score ~ ., gaussian(), data2)
+```
+
+```{r}
+benchmarking(Crash_Score ~ ., Gamma(), data2)
+```
+
+```{r}
+benchmarking(Crash_Score ~ ., gaussian(link="log"), data2)
+```
+
+```{r}
+benchmarking(Crash_Score ~ ., Gamma(link="log"), data2)
+```
+
+```{r}
+# conclusion 1
+# the gaussian distribution has the highest OOS R2 and the lowest RMSE
+# the gamma distribution has the highest R2 and the lowest AIC
+# conclusion 2
+# feature transformation slightly improves the AIC, RMSE, and OOS R2
+# conclusion 3
+# there are still too many variables and too many varaible levels
+# as a result, we will do a feature selection
+```
+
+# feature selection
+
+```{r}
+set.seed(123)
+data2 <- data2[sample(nrow(data2)),]
+folds <- cut(seq(1,nrow(data2)),breaks=10,labels=FALSE)
+testIndexes <- which(folds==1,arr.ind=TRUE)
+testData2 <- data2[testIndexes, ]
+trainData2 <- data2[-testIndexes, ]
+```
+
+## forward BIC
+
+```{r}
+glm <- glm(Crash_Score ~ ., gaussian(), data = trainData2)
+glm_1 <- glm(Crash_Score ~ 1, gaussian(), data = trainData2)
+stepAIC(glm_1, direction="forward", k=log(nrow(trainData2)), scope=list(upper = glm, lower = glm_1))
+# reasoning
+# we use forward BIC, as BIC is a more conservative approach compared to AIC, and there is a greater penalty for each parameter added
+```
+
+```{r}
+benchmarking(Crash_Score ~ Rd_Class + Rd_Feature + Time_of_Day + Traffic_Control, gaussian(), data2)
+```
+
+```{r}
+# visualization
+glm_selected <- glm(Crash_Score ~ Rd_Class + Rd_Feature + Time_of_Day + Traffic_Control, gaussian(), data = data2)
+summary(glm_selected)
+plot(glm_selected)
+```
+
+```{r}
+glm <- glm(Crash_Score ~ ., Gamma(link="log"), data = trainData2)
+glm_1 <- glm(Crash_Score ~ 1, Gamma(link="log"), data = trainData2)
+stepAIC(glm_1, direction="forward", k=log(nrow(trainData2)), scope=list(upper = glm, lower = glm_1))
+# reasoning
+# we use forward BIC, as BIC is a more conservative approach compared to AIC, and there is a greater penalty for each parameter added
+```
+
+```{r}
+benchmarking(Crash_Score ~ Rd_Class + Rd_Feature + Time_of_Day + Traffic_Control, Gamma(link="log"), data2)
+```
+
+# visualization
+
+```{r}
+# visualization
+glm_selected <- glm(Crash_Score ~ Rd_Class + Traffic_Control + Rd_Feature + 
+    Time_of_Day, Gamma(link="log"), data = data2)
+summary(glm_selected)
+plot(glm_selected)
+# the residuals vs fitted model indicates that the residuals has zero means and constant variables
+# the q-q plot indicates that there is normal distribution for most residuals, but not for extremes
+# it could fit better for a heavy tailed model
+```
+
+```{r}
+# conclusion 1
+# feature selection with BIC forward does not improve the model performance
+# however, feature selection identifies 4 key features, Rd_Class, Traffic_Control, Rd_Feature, and Time_of_Day
+# conclusion 2
+# gaussian distribution and gamma distribution with log link have similar model performance
+# according to viusalization, gamma distribution with log link is a better choice
+```
+
+## regularization
+
+```{r}
+lasso <- function(x_train, x_test, y_train, y_test){
+  # lasso regression
+  lasso = glmnet(x_train, y_train, alpha = 1)
+  # select best lambda
+  cvlasso = cv.glmnet(x_train, y_train, type.measure="mse", nfolds = 10, alpha = 1)
+  plot(cvlasso, main = "Lasso Select Best Lambda")
+  lasso.lam.min = cvlasso$lambda.min
+  # lasso regression with best lambda
+  lasso_best <- glmnet(x_train, y_train, "gaussian", lambda = lasso.lam.min, alpha = 1)
+  predict <- predict(lasso_best, x_test)
+
+  # RMSE
+  print("RMSE")
+  RMSE <- sqrt(sum((y_test-predict)^2)/nrow(x_test))
+  print(RMSE)
+  # R2
+  print("R2")
+  R2 <- lasso_best$dev.ratio
+  print(R2)
+  # OOS R2
+  print("OOS_R2")
+  OOS_R2 <- 1 - sum((y_test-predict)^2) /sum((y_test-mean(y_test))^2)
+  print(OOS_R2)
+  # coefficient
+  print("Coefficient")
+  lasso.coef = coef(lasso, s = lasso.lam.min)
+  print(lasso.coef)
+}
+# reasoning
+# we use lasso regression, as there are useless variables
+```
+
+```{r}
+x_train <- model.matrix(Crash_Score ~ ., trainData2)
+x_test <- model.matrix(Crash_Score ~ ., testData2)
+y_train <- trainData2$Crash_Score
+y_test <- testData2$Crash_Score
+
+lasso(x_train, x_test, y_train, y_test)
+```
+
+```{r}
+# conclusion 1
+# feature selection with lasso regression does not improve the model performance
+```
+
+# interaction
+
+```{r}
+# an interaction is  when changing the level of one variable changes how levels of the other variables affect the dependent variable
+```
+
+```{r}
+interaction.plot(data2$Work_Area, data2$Time_of_Day, data2$Crash_Score, ylab="Crash_Score", xlab="Work_Area", trace.label="Time_of_Day")
+# as we can observe, the relative impact for work area is higher for late early, and lower for daytime and overnight
+# as during the rush hour, there are more traffic in the work area
+```
+
+```{r}
+interaction.plot(data2$Traffic_Control, data2$Rd_Feature, data2$Crash_Score, ylab="Crash_Score", xlab="Traffic_Control", trace.label="Rd_Feature")
+# as we can observe, the relative impact for interaction is lower for signal stop
+# this indicate that signal and stop could be a good traffic control practice for intersection
+```
+
+```{r}
+# conclusion 1
+# as we can observe, there are lots of interaction between variables
+# so we will taking interaction into consideration
+```
+
+```{r}
+# test
+benchmarking(Crash_Score ~ . + (.)^2, Gamma(link="log"), data2)
+```
+
+```{r}
+# conclusion 1
+# as we can observe, taking interaction into consideration significantly improves R2 but not OOS R2
+# as a result, we will do a feature selection
+```
+
+# feature selection
+
+## forward BIC
+
+```{r}
+glm <- glm(Crash_Score ~ . + (.)^2, Gamma(link="log"), data = trainData2)
+glm_1 <- glm(Crash_Score ~ 1, Gamma(link="log"), data = trainData2)
+stepAIC(glm_1, direction="forward", k=log(nrow(trainData2)), scope=list(upper = glm, lower = glm_1))
+```
+
+```{r}
+benchmarking(Crash_Score ~ Rd_Class + Rd_Feature + Time_of_Day + Traffic_Control, Gamma(link="log"), data2)
+```
+
+```{r}
+# conclusion 1
+# the interaction is not reflected in the BIC forward selection
+```
+
+## regularization
+
+```{r}
+x_train <- model.matrix(Crash_Score ~ . + (.)^2, trainData2)
+x_test <- model.matrix(Crash_Score ~ . + (.)^2, testData2)
+y_train <- trainData2$Crash_Score
+y_test <- testData2$Crash_Score
+
+lasso(x_train, x_test, y_train, y_test)
+```
+
+```{r}
+# conclusion 1
+# feature selection with lasso regression significantly improves the R2 and slightly improves OOS R2
+```
+
+# outliers
+
+```{r}
+data3 <- filter(data2, Crash_Score <= 10)
+```
+
+```{r}
+benchmarking(Crash_Score ~ ., gaussian(), data3)
+```
+
