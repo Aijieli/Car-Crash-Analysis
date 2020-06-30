@@ -15,7 +15,23 @@ Here are the suggestions based on our findings:
 
 ## Data Characteristics
 
-The dataset is provided by the Department of Transportation in the City of Cary in North Carolina, and it includes information for all of the car crashes in 2014 – 2019 with 14 dimensions and 23137 observations. The dependent variable Crash_Score is a numeric variable, which measures the extent of the car crashes, based on a series of factors, such as the number of vehicles involved, and the number of injuries or fatalities. The distributions of Crash_Score and the log of Crash_Score, it is shown that the distribution of the Crash_Score is right-skewed, with a median of 5.660, and a max of 53.070, which indicate that most car crashes are slight car crashes and a small proportion are severe car crashes. The log of Crash_Score is left-skewed (Figure 1).
+The dataset is provided by the Department of Transportation in the City of Cary in North Carolina, and it includes information for all of the car crashes in 2014 – 2019 with 14 dimensions and 23137 observations. The dependent variable Crash_Score is a numeric variable, which measures the extent of the car crashes, based on a series of factors, such as the number of vehicles involved, and the number of injuries or fatalities. The distributions of Crash_Score and the log of Crash_Score, it is shown that the distribution of the Crash_Score is right-skewed, with a median of 5.660, and a max of 53.070, which indicate that most car crashes are slight car crashes and a small proportion are severe car crashes. The log of Crash_Score is left-skewed (Figure 1). Most of the independent variables are categorical variables, including year, month, time, road conditions, traffic control conditions, and weather.
 
-<img src="https://github.com/Aijieli/Car-Crash-Analysis/blob/master/images/Crash%20Score%20Histogram.jpg" width="300" height="200"> <img src="https://github.com/Aijieli/Car-Crash-Analysis/blob/master/images/the%20Log%20of%20Crash%20Score%20Histogram.jpg" width="300" height="200">
-Figure 1 Crash_Score Histogram and the log of Crash_Score Histogram
+<img src="https://github.com/Aijieli/Car-Crash-Analysis/blob/master/images/Crash%20Score%20Histogram.jpg" width="300" height="200"> <img src="https://github.com/Aijieli/Car-Crash-Analysis/blob/master/images/the%20Log%20of%20Crash%20Score%20Histogram.jpg" width="300" height="200"> <br>
+**Figure 1 Crash_Score Histogram and the log of Crash_Score Histogram**
+
+## Feature Transformation
+
+We fitted a model with the unprocessed dataset, the in-sample R2 is relatively high, but the out-of-sample R2 is low. It seems that the model tends to overfit. Based on our observations, we decided to do a feature transformation and to combine some levels of the factors. Feature transformation could reduce the complexity of the model and prevent overfitting. Here is the process (Table 1):
+Feature | Levels with Transformation
+Time_of_Day | DAYTIME, OVERNIGHT, LATE-EARLY
+Rd_Feature
+INTERSECTION, OTHER
+Rd_Character
+STRAIGHT, CURVE
+Rd_Surface
+ASPHALT, OTHER
+Weather
+CLEAR-CLOUDY, RAIN-SNOW, OTHER
+Traffic_Control
+SIGNAL-STOP, OTHER
