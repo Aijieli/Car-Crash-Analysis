@@ -36,13 +36,13 @@ Traffic_Control | SIGNAL-STOP, OTHER
 
 We used a series of techniques to select and evaluate generalized linear models (GLMs), and then interpret the model by the coefficients of variables. Although the predictive performance is not the main focus of our model, we used RMSE and out-of-sample R2 as the main performance metrics for us to select and evaluate models. The RMSE indicates how well the model can predict dependent variables in new datasets, and the out-of-sample R2 indicates how well the independent variables can interpret the variation for dependent variables in new datasets. We chose these metrics because we want the model to generalize insights, rather than overfit our dataset. Additionally, we applied 10-fold cross-validation, to utilize the dataset better and to provide performance metrics more accurately.
 
-**Model 0: GLM with the unprocessed dataset**
+### Model 0: GLM with the unprocessed dataset
 
 *𝑔𝑙𝑚(𝐶𝑟𝑎𝑠ℎ_𝑆𝑐𝑜𝑟𝑒 ~ .,𝑔𝑎𝑢𝑠𝑠𝑖𝑎𝑛(),𝑑𝑎𝑡𝑎 = 𝑑𝑎𝑡𝑎)*
 
 As we mentioned, we fitted a model with the unprocessed dataset, and the in-sample R2 is significantly lower than the out-of-sample R2, indicating overfit. As a result, we did feature transformation and reduced the level of factors.
 
-**Model 1: GLM with the processed dataset**
+### Model 1: GLM with the processed dataset
 
 *𝑔𝑙𝑚(𝐶𝑟𝑎𝑠ℎ_𝑆𝑐𝑜𝑟𝑒 ~ .,𝑔𝑎𝑢𝑠𝑠𝑖𝑎𝑛(),𝑑𝑎𝑡𝑎 = 𝑑𝑎𝑡𝑎2) 𝑔𝑙𝑚(𝐶𝑟𝑎𝑠ℎ_𝑆𝑐𝑜𝑟𝑒 ~ .,𝐺𝑎𝑚𝑚𝑎(𝑙𝑜𝑔="𝑙𝑖𝑛𝑘"),𝑑𝑎𝑡𝑎 = 𝑑𝑎𝑡𝑎2)*
 
@@ -54,7 +54,7 @@ We fitted a model with the dataset after feature transformation, and both the RM
 <img src="https://github.com/Aijieli/Car-Crash-Analysis/blob/master/images/GLM%20with%20Gaussian%20Distribution%20and%20Log%20Link%201.jpg" width="400" height="200"> <img src="https://github.com/Aijieli/Car-Crash-Analysis/blob/master/images/GLM%20with%20Gaussian%20Distribution%20and%20Log%20Link%202.jpg" width="400" height="200"> <br>
 **Figure 3: Visualization for GLM with Gamma Distribution and Log Link**
 
-**Model 2: GLM with feature selection** 
+### Model 2: GLM with feature selection
 *𝑔𝑙𝑚(𝐶𝑟𝑎𝑠ℎ_𝑆𝑐𝑜𝑟𝑒 ~ 𝑅𝑑_𝐶𝑙𝑎𝑠𝑠 + 𝑇𝑟𝑎𝑓𝑓𝑖𝑐_𝐶𝑜𝑛𝑡𝑟𝑜𝑙 + 𝑅𝑑_𝐹𝑒𝑎𝑡𝑢𝑟𝑒 + 𝑇𝑖𝑚𝑒_𝑜𝑓_𝐷𝑎𝑦,𝑔𝑎𝑢𝑠𝑠𝑖𝑎𝑛(),𝑑𝑎𝑡𝑎 = 𝑑𝑎𝑡𝑎2)* <br>
 *𝑔𝑙𝑚(𝐶𝑟𝑎𝑠ℎ_𝑆𝑐𝑜𝑟𝑒 ~ 𝑅𝑑_𝐶𝑙𝑎𝑠𝑠 + 𝑇𝑟𝑎𝑓𝑓𝑖𝑐_𝐶𝑜𝑛𝑡𝑟𝑜𝑙 + 𝑅𝑑_𝐹𝑒𝑎𝑡𝑢𝑟𝑒 + 𝑇𝑖𝑚𝑒_𝑜𝑓_𝐷𝑎𝑦,𝐺𝑎𝑚𝑚𝑎(𝑙𝑖𝑛𝑘="𝑙𝑜𝑔"),𝑑𝑎𝑡𝑎 = 𝑑𝑎𝑡𝑎2)*
 
@@ -65,7 +65,7 @@ Although BIC forward selection and LASSO regression not significantly improve th
 - Signal and stop traffic control add to Crash_Score by approximately 0.31.
 - Daytime has the highest Crash_Score, followed by late-early, 0.30 lower, and overnight, 0.73 lower.
 
-**Model 3: GLM with interaction** 
+### Model 3: GLM with interaction
 *𝑥𝑡𝑟𝑎𝑖𝑛=𝑚𝑜𝑑𝑒𝑙.𝑚𝑎𝑡𝑟𝑖𝑥(𝐶𝑟𝑎𝑠ℎ_𝑆𝑐𝑜𝑟𝑒 ~ .+ (.)^2,𝑡𝑟𝑎𝑖𝑛𝐷𝑎𝑡𝑎2)* <br>
 *𝑦𝑡𝑟𝑎𝑖𝑛=𝑡𝑟𝑎𝑖𝑛𝐷𝑎𝑡𝑎2$𝐶𝑟𝑎𝑠ℎ_𝑆𝑐𝑜𝑟𝑒* <br>
 *𝑔𝑙𝑚𝑛𝑒𝑡(𝑥_𝑡𝑟𝑎𝑖𝑛,𝑦_𝑡𝑟𝑎𝑖𝑛,"𝑔𝑎𝑢𝑠𝑠𝑖𝑎𝑛",𝑙𝑎𝑚𝑏𝑑𝑎 = 𝑙𝑎𝑠𝑠𝑜.𝑙𝑎𝑚.𝑚𝑖𝑛,𝑎𝑙𝑝ℎ𝑎 = 1)*
