@@ -24,14 +24,10 @@ The dataset is provided by the Department of Transportation in the City of Cary 
 
 We fitted a model with the unprocessed dataset, the in-sample R2 is relatively high, but the out-of-sample R2 is low. It seems that the model tends to overfit. Based on our observations, we decided to do a feature transformation and to combine some levels of the factors. Feature transformation could reduce the complexity of the model and prevent overfitting. Here is the process (Table 1):
 Feature | Levels with Transformation
+| ------------- | ------------- |
 Time_of_Day | DAYTIME, OVERNIGHT, LATE-EARLY
-Rd_Feature
-INTERSECTION, OTHER
-Rd_Character
-STRAIGHT, CURVE
-Rd_Surface
-ASPHALT, OTHER
-Weather
-CLEAR-CLOUDY, RAIN-SNOW, OTHER
-Traffic_Control
-SIGNAL-STOP, OTHER
+Rd_Feature | INTERSECTION, OTHER
+Rd_Character | STRAIGHT, CURVE
+Rd_Surface | ASPHALT, OTHER
+Weather | CLEAR-CLOUDY, RAIN-SNOW, OTHER
+Traffic_Control | SIGNAL-STOP, OTHER
