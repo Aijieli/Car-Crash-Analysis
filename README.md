@@ -5,6 +5,7 @@ Here are some key findings for our analysis:
 - Interaction road feature, signal and stop traffic control, and curve road add to the Crash Score.
 - Daytime has the highest Crash_Score, followed by late-early and overnight.
 - The relative impact for interaction is lower for signal stop, and the relative impact for the work area is higher for late early.<br>
+
 Here are the suggestions based on our findings:
 - The intersection has complex traffic conditions as well as a significantly higher Crash_Score. Thus, municipal management should consider signal and stop, two-way protected median, and lighting as traffic control and road management practice.
 - Time of day largely affects the Crash_Score. Thus, municipal management could try different practices for different times, especially in the work area during rush hour.
