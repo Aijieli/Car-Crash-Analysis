@@ -31,3 +31,21 @@ Rd_Character | STRAIGHT, CURVE
 Rd_Surface | ASPHALT, OTHER
 Weather | CLEAR-CLOUDY, RAIN-SNOW, OTHER
 Traffic_Control | SIGNAL-STOP, OTHER
+
+## Model Selection, Evaluation, and Interpretation
+
+We used a series of techniques to select and evaluate generalized linear models (GLMs), and then interpret the model by the coefficients of variables. Although the predictive performance is not the main focus of our model, we used RMSE and out-of-sample R2 as the main performance metrics for us to select and evaluate models. The RMSE indicates how well the model can predict dependent variables in new datasets, and the out-of-sample R2 indicates how well the independent variables can interpret the variation for dependent variables in new datasets. We chose these metrics because we want the model to generalize insights, rather than overfit our dataset. Additionally, we applied 10-fold cross-validation, to utilize the dataset better and to provide performance metrics more accurately.
+
+**Model 0: GLM with the unprocessed dataset**
+
+*𝑔𝑙𝑚(𝐶𝑟𝑎𝑠ℎ_𝑆𝑐𝑜𝑟𝑒 ~ .,𝑔𝑎𝑢𝑠𝑠𝑖𝑎𝑛(),𝑑𝑎𝑡𝑎 = 𝑑𝑎𝑡𝑎)*
+
+As we mentioned, we fitted a model with the unprocessed dataset, and the in-sample R2 is significantly lower than the out-of-sample R2, indicating overfit. As a result, we did feature transformation and reduced the level of factors.
+
+**Model 1: GLM with the processed dataset**
+
+*𝑔𝑙𝑚(𝐶𝑟𝑎𝑠ℎ_𝑆𝑐𝑜𝑟𝑒 ~ .,𝑔𝑎𝑢𝑠𝑠𝑖𝑎𝑛(),𝑑𝑎𝑡𝑎 = 𝑑𝑎𝑡𝑎2) 𝑔𝑙𝑚(𝐶𝑟𝑎𝑠ℎ_𝑆𝑐𝑜𝑟𝑒 ~ .,𝐺𝑎𝑚𝑚𝑎(𝑙𝑜𝑔="𝑙𝑖𝑛𝑘"),𝑑𝑎𝑡𝑎 = 𝑑𝑎𝑡𝑎2)*
+
+We fitted a model with the dataset after feature transformation, and both the RMSE and out-of-sample R2 are improved. Then, we benchmarked the performance for different distribution functions and link functions. As we mentioned, the distribution of Crash_Score is skewed, and Gamma distribution could be a better choice. After we investigated the visualizations (Figure 2, 3), it seems that with Gamma distribution and log link, the residuals have zero means and constant variables, and there are normal distributions for most residuals but not for extremes. As a result, we chose the model with Gamma distribution and log link, but we will also use Gaussian distribution for interpretation and intuition.
+
+<img src="https://github.com/Aijieli/Car-Crash-Analysis/blob/master/images/Crash%20Score%20Histogram.jpg" width="300" height="200"> <img src="https://github.com/Aijieli/Car-Crash-Analysis/blob/master/images/the%20Log%20of%20Crash%20Score%20Histogram.jpg" width="300" height="200"> <br>
