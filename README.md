@@ -77,7 +77,7 @@ The GLM without interaction provides similar insights as EDA. We want to further
 
 To achieve this, we included all the variables and interactions and applied high dimension LASSO regression. Additionally, we used 10-fold cross-validation, to determine the penalty parameter, lambda, with minimum MSE (Figure 5).
 
-<img src="https://github.com/Aijieli/Car-Crash-Analysis/blob/master/images/Selection%20for%20Lambda.jpg" width="400" height="200">
+<img src="https://github.com/Aijieli/Car-Crash-Analysis/blob/master/images/Selection%20for%20Lambda.jpg" width="400" height="200"> <br>
 **Figure 5: Selection for Lambda**
 
 With the high dimension LASSO regression, the in-sample R2 is significantly improved, and the out-of-sample R2 is further improved. It helps us investigate how a single factor contributes to car crashes as well as how multiple factors interact, which provides insights that could be overlooked or underestimated by traditional methods. Here are some findings:
