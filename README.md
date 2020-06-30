@@ -53,3 +53,35 @@ We fitted a model with the dataset after feature transformation, and both the RM
 
 <img src="https://github.com/Aijieli/Car-Crash-Analysis/blob/master/images/GLM%20with%20Gaussian%20Distribution%20and%20Log%20Link%201.jpg" width="400" height="200"> <img src="https://github.com/Aijieli/Car-Crash-Analysis/blob/master/images/GLM%20with%20Gaussian%20Distribution%20and%20Log%20Link%202.jpg" width="400" height="200"> <br>
 **Figure 3: Visualization for GLM with Gamma Distribution and Log Link**
+
+**Model 2: GLM with feature selection** 
+*𝑔𝑙𝑚(𝐶𝑟𝑎𝑠ℎ_𝑆𝑐𝑜𝑟𝑒 ~ 𝑅𝑑_𝐶𝑙𝑎𝑠𝑠 + 𝑇𝑟𝑎𝑓𝑓𝑖𝑐_𝐶𝑜𝑛𝑡𝑟𝑜𝑙 + 𝑅𝑑_𝐹𝑒𝑎𝑡𝑢𝑟𝑒 + 𝑇𝑖𝑚𝑒_𝑜𝑓_𝐷𝑎𝑦,𝑔𝑎𝑢𝑠𝑠𝑖𝑎𝑛(),𝑑𝑎𝑡𝑎 = 𝑑𝑎𝑡𝑎2)* <br>
+*𝑔𝑙𝑚(𝐶𝑟𝑎𝑠ℎ_𝑆𝑐𝑜𝑟𝑒 ~ 𝑅𝑑_𝐶𝑙𝑎𝑠𝑠 + 𝑇𝑟𝑎𝑓𝑓𝑖𝑐_𝐶𝑜𝑛𝑡𝑟𝑜𝑙 + 𝑅𝑑_𝐹𝑒𝑎𝑡𝑢𝑟𝑒 + 𝑇𝑖𝑚𝑒_𝑜𝑓_𝐷𝑎𝑦,𝐺𝑎𝑚𝑚𝑎(𝑙𝑖𝑛𝑘="𝑙𝑜𝑔"),𝑑𝑎𝑡𝑎 = 𝑑𝑎𝑡𝑎2)*
+
+After feature transformation and model selection, the in-sample R2 is still significantly higher than the out-of-sample R2. This is when we consider a feature selection to reduce the complexity of the model and prevent overfitting. We chose BIC forward selection and LASSO regression. The former starts with no variables in the model and adds the variable that gives the most statistically significant improvement of the fit. The latter starts with all the variables in the model and shrinks the parameters with the penalty. Additionally, let us emphasize the focus of the analysis, to identify and interpret the key factors that contribute to car crashes. With this goal, we chose BIC over AIC for and the penalty is greater for each additional parameter; we also chose LASSO over ridge, for it could shrink the parameters of the useless variables to zero.
+
+Although BIC forward selection and LASSO regression not significantly improve the model performance, it helps us identify key factors, including Rd_Class, Traffic_Control. Rd_Feature, and Time_of_Day. Here are some findings:
+- Interaction road feature adds to Crash_Score by approximately 0.36.
+- Signal and stop traffic control add to Crash_Score by approximately 0.31.
+- Daytime has the highest Crash_Score, followed by late-early, 0.30 lower, and overnight, 0.73 lower.
+
+**Model 3: GLM with interaction** 
+*𝑥𝑡𝑟𝑎𝑖𝑛=𝑚𝑜𝑑𝑒𝑙.𝑚𝑎𝑡𝑟𝑖𝑥(𝐶𝑟𝑎𝑠ℎ_𝑆𝑐𝑜𝑟𝑒 ~ .+ (.)^2,𝑡𝑟𝑎𝑖𝑛𝐷𝑎𝑡𝑎2)* <br>
+*𝑦𝑡𝑟𝑎𝑖𝑛=𝑡𝑟𝑎𝑖𝑛𝐷𝑎𝑡𝑎2$𝐶𝑟𝑎𝑠ℎ_𝑆𝑐𝑜𝑟𝑒* <br>
+*𝑔𝑙𝑚𝑛𝑒𝑡(𝑥_𝑡𝑟𝑎𝑖𝑛,𝑦_𝑡𝑟𝑎𝑖𝑛,"𝑔𝑎𝑢𝑠𝑠𝑖𝑎𝑛",𝑙𝑎𝑚𝑏𝑑𝑎 = 𝑙𝑎𝑠𝑠𝑜.𝑙𝑎𝑚.𝑚𝑖𝑛,𝑎𝑙𝑝ℎ𝑎 = 1)*
+
+The GLM without interaction provides similar insights as EDA. We want to further improve the model and extract more insights from the dataset, so we decided to take interaction into consideration. Car crashes are complicated and different factors affect each other. In the following interaction plots, it is shown that there are interactions between factors (Figure 4).
+
+<img src="https://github.com/Aijieli/Car-Crash-Analysis/blob/master/images/Interaction%20for%20Different%20factors%201.jpg" width="400" height="200"> <img src="https://github.com/Aijieli/Car-Crash-Analysis/blob/master/images/Interaction%20for%20Different%20factors%202.jpg" width="400" height="200"> <br>
+**Figure 4: Interaction for different factors**
+
+To achieve this, we included all the variables and interactions and applied high dimension LASSO regression. Additionally, we used 10-fold cross-validation, to determine the penalty parameter, lambda, with minimum MSE (Figure 5).
+
+<img src="https://github.com/Aijieli/Car-Crash-Analysis/blob/master/images/Selection%20for%20Lambda.jpg" width="400" height="200">
+**Figure 5: Selection for Lambda**
+
+With the high dimension LASSO regression, the in-sample R2 is significantly improved, and the out-of-sample R2 is further improved. It helps us investigate how a single factor contributes to car crashes as well as how multiple factors interact, which provides insights that could be overlooked or underestimated by traditional methods. Here are some findings:
+- Although interaction, signal and stop both add to Crash_Score, the relative impact for interaction is lower for signal stop.
+- The relative impact for the work area is higher for late early.
+- The relative impact for light is higher during overnight.
+- Road class and road condition interacts with each other. The ice, snow, slush road condition has relative high impact on other road than US and state highway.
