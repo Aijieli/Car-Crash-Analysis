@@ -48,4 +48,8 @@ As we mentioned, we fitted a model with the unprocessed dataset, and the in-samp
 
 We fitted a model with the dataset after feature transformation, and both the RMSE and out-of-sample R2 are improved. Then, we benchmarked the performance for different distribution functions and link functions. As we mentioned, the distribution of Crash_Score is skewed, and Gamma distribution could be a better choice. After we investigated the visualizations (Figure 2, 3), it seems that with Gamma distribution and log link, the residuals have zero means and constant variables, and there are normal distributions for most residuals but not for extremes. As a result, we chose the model with Gamma distribution and log link, but we will also use Gaussian distribution for interpretation and intuition.
 
-<img src="https://github.com/Aijieli/Car-Crash-Analysis/blob/master/images/Crash%20Score%20Histogram.jpg" width="300" height="200"> <img src="https://github.com/Aijieli/Car-Crash-Analysis/blob/master/images/the%20Log%20of%20Crash%20Score%20Histogram.jpg" width="300" height="200"> <br>
+<img src="https://github.com/Aijieli/Car-Crash-Analysis/blob/master/images/GLM%20with%20Gaussian%20Distribution%201.jpg" width="400" height="200"> <img src="https://github.com/Aijieli/Car-Crash-Analysis/blob/master/images/GLM%20with%20Gaussian%20Distribution%202.jpg" width="400" height="200"> <br>
+**Figure 2: Visualization for GLM with Gaussian Distribution**
+
+<img src="https://github.com/Aijieli/Car-Crash-Analysis/blob/master/images/GLM%20with%20Gaussian%20Distribution%20and%20Log%20Link%201.jpg" width="400" height="200"> <img src="https://github.com/Aijieli/Car-Crash-Analysis/blob/master/images/GLM%20with%20Gaussian%20Distribution%20and%20Log%20Link%202.jpg" width="400" height="200"> <br>
+**Figure 3: Visualization for GLM with Gamma Distribution and Log Link**
